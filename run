@@ -1,0 +1,36 @@
+#!/bin/bash
+
+DOCKER_IMAGE="speeddigital/jenkins-swarm:latest"
+
+# mount docker files so the container can run docker
+# mounting libdevmapper.so.1.02 is for Docker-in-Docker to work in CoreOS
+VOLUMES=(
+  "-v /var/run/docker.sock:/var/run/docker.sock:ro"
+  "-v /usr/lib/libdevmapper.so.1.02:/usr/lib/libdevmapper.so.1.02:ro"
+  "-v $(which docker):/usr/bin/docker:ro"
+)
+
+JENKINS_MASTER_URL=${JENKINS_MASTER_URL:-}
+JENKINS_USERNAME=${JENKINS_USERNAME:-}
+JENKINS_PASSWORD=${JENKINS_PASSWORD:-}
+
+function usage_and_exit {
+  echo "Error: missing environment variable \$$1"
+  echo
+  echo "Usage: JENKINS_MASTER_URL=http://jenkins.example.com JENKINS_USERNAME=user JENKINS_USERNAME=pass $0"
+  exit 1
+}
+
+if [[ $# -lt 1 ]]; then
+  [ -z $JENKINS_MASTER_URL ] && usage_and_exit JENKINS_MASTER_URL
+  [ -z $JENKINS_USERNAME ] && usage_and_exit JENKINS_USERNAME
+  [ -z $JENKINS_PASSWORD ] && usage_and_exit JENKINS_PASSWORD
+
+  docker run ${VOLUMES[@]} -d ${DOCKER_IMAGE} \
+    -master ${MASTER_URL} \
+    -executors 1 \
+    -username ${JENKINS_USERNAME} \
+    -password ${JENKINS_USERNAME}
+else
+  docker run ${VOLUMES[@]} -it ${DOCKER_IMAGE} $@
+fi
